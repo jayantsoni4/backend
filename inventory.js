@@ -5,8 +5,7 @@ const cors = require("cors");
 
 // Environment variables (for MongoDB URI)
 const PORT = process.env.PORT || 5000;
-  const MONGO_URI = "mongodb+srv://khushsoni839:ks1234@cluster0.u3hib.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-// const MONGO_URI = "mongodb+srv://ages27771:ages12345@cluster0.t2zpj0w.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const MONGO_URI = process.env.MONGO_URI;
 
 const app = express();
 app.use(cors());
