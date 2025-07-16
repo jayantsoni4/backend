@@ -1,86 +1,128 @@
-// server.js
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
 
-// Environment variables (for MongoDB URI)
-const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI;
+const express = require('express');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const cors = require('cors');
 
+// Initialize Express app
 const app = express();
+
+// Middleware
+app.use(bodyParser.json());
 app.use(cors());
-app.use(express.json());
 
-// Mongoose Schema & Model
-const inventorySchema = new mongoose.Schema({
-  date: String,
-  partCode: String,
+// MongoDB Atlas connection
+const dbURI = process.env.MONGODB_URI;
+
+mongoose.connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('Connected to MongoDB Atlas'))
+  .catch((err) => {
+    console.error('Failed to connect to MongoDB:', err);
+    process.exit(1); // Exit the process if DB connection fails
+  });
+
+const taskSchema = new mongoose.Schema({
+  complaintNumber: String,
+  name: String,
+  email: String,
+  phone: String,
+  altPhone: String,
+  state: String,
+  city: String,
+  pincode: String,
+  location: String,
+  landmark: String,
   product: String,
-  model: String,
-  capacity: String,
-  currentStock: Number,
-  stockIn: Number,
-  stockOut: Number,
-  total: Number,
-});
+  selectedModel: {
+    model: String,
+    capacity: String,
+    warranty: Number
+  },
+  serialNumber: String,
+  warrantyStatus: {
+    status: String,
+    expiryDate: String
+  },
+  purchaseDate: String,
+  installationDate: String,
+  callType: String,
+  condition: String,
+  callSource: String,
+  taskStatus: String,
+  assignEngineer: String,
+  contactNo: String,
+  dealer: String,
+  date: String,
+  asp: String,
+  aspName: String,
+  actionTaken: String,
+  customerFeedback: String,
+  enginnerNotes: String,
+  images: [String],
+  status: String,
+  complaintNotes: String,
+  additionalStatus: String,
+}, { timestamps: true }); // ✅ Adds createdAt and updatedAt fields
 
-const Inventory = mongoose.model("Inventory", inventorySchema);
+// Create Task model
+const Task = mongoose.model('Task', taskSchema);
 
-// Connect to MongoDB
-mongoose.connect(MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => console.log("✅ MongoDB Connected"))
-  .catch(err => console.error("❌ MongoDB Error:", err));
+// Routes
 
-// === API Routes ===
-
-// Get all inventory items
-app.get("/api/inventory", async (req, res) => {
+// Add new task
+app.post('/tasks', async (req, res) => {
   try {
-    const items = await Inventory.find();
-    res.json(items);
+    const task = new Task(req.body);
+    await task.save();
+    res.status(201).json(task);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error saving task:", err);
+    res.status(500).json({ error: "Failed to save task. Please try again." });
   }
 });
 
-// Create a new inventory item
-app.post("/api/inventory", async (req, res) => {
+// Get all tasks
+app.get('/tasks', async (req, res) => {
   try {
-    const newItem = new Inventory(req.body);
-    await newItem.save();
-    res.status(201).json(newItem);
+    const tasks = await Task.find();
+    res.status(200).json(tasks);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error("Error fetching tasks:", err);
+    res.status(500).json({ error: "Failed to fetch tasks. Please try again." });
   }
 });
 
-// Update an item by ID
-app.put("/api/inventory/:id", async (req, res) => {
+// Update task
+app.put('/tasks/:id', async (req, res) => {
   try {
-    const updatedItem = await Inventory.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(updatedItem);
+    const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!task) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+    res.status(200).json(task);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error("Error updating task:", err);
+    res.status(500).json({ error: "Failed to update task. Please try again." });
   }
 });
 
-// Delete an item by ID
-app.delete("/api/inventory/:id", async (req, res) => {
+// Delete task
+app.delete('/tasks/:id', async (req, res) => {
   try {
-    await Inventory.findByIdAndDelete(req.params.id);
-    res.json({ message: "Item deleted" });
+    const task = await Task.findByIdAndDelete(req.params.id);
+    if (!task) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+    res.status(200).json({ message: 'Task deleted' });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error("Error deleting task:", err);
+    res.status(500).json({ error: "Failed to delete task. Please try again." });
   }
 });
 
-// // Start the server
-// app.listen(PORT, () => {
-//   console.log(`🚀 Server running at http://localhost:${PORT}`);
-// });
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running at http://0.0.0.0:${PORT}`);
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
+
