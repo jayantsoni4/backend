@@ -1,23 +1,27 @@
 // server.js
-require("dotenv").config(); // Load variables from .env in local dev
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
-const app = express();
-
-// ✅ Use PORT from Railway, fallback to 5000 locally
+// Environment variables (for MongoDB URI)
 const PORT = process.env.PORT || 5000;
+  const MONGO_URI = "mongodb+srv://khushsoni839:ks1234@cluster0.u3hib.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+// const MONGO_URI = "mongodb+srv://ages27771:ages12345@cluster0.t2zpj0w.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
-// ✅ Use MONGO_URI from Railway's environment variables
-const MONGO_URI = process.env.MONGO_URI;
-
+const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Schema & Model
+const QuantitySchema = new mongoose.Schema({
+  receiveqty: String,
+  dispatchqty: String,
+  pending: String,
+  inmodel:String , outmodel:String , desc:String
+});
+
+// Mongoose Schema & Model
 const inventorySchema = new mongoose.Schema({
-   date: String,
+  date: String,
   partCode: String,
   inlocation: String,
   outlocation: String,
@@ -41,22 +45,21 @@ const inventorySchema = new mongoose.Schema({
   stockIn: Number,
   stockOut: Number,
   total: Number,
+  quantities: [QuantitySchema], // <-- Embedded subdocument array
 });
 
 const Inventory = mongoose.model("Inventory", inventorySchema);
 
-// ✅ Connect to MongoDB
+// Connect to MongoDB
 mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-})
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch(err => {
-    console.error("❌ MongoDB connection error:", err);
-    process.exit(1);
-  });
+}).then(() => console.log("✅ MongoDB Connected"))
+  .catch(err => console.error("❌ MongoDB Error:", err));
 
 // === API Routes ===
+
+// Get all inventory items
 app.get("/api/inventory", async (req, res) => {
   try {
     const items = await Inventory.find();
@@ -66,6 +69,7 @@ app.get("/api/inventory", async (req, res) => {
   }
 });
 
+// Create a new inventory item
 app.post("/api/inventory", async (req, res) => {
   try {
     const newItem = new Inventory(req.body);
@@ -76,6 +80,7 @@ app.post("/api/inventory", async (req, res) => {
   }
 });
 
+// Update an item by ID
 app.put("/api/inventory/:id", async (req, res) => {
   try {
     const updatedItem = await Inventory.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -85,6 +90,7 @@ app.put("/api/inventory/:id", async (req, res) => {
   }
 });
 
+// Delete an item by ID
 app.delete("/api/inventory/:id", async (req, res) => {
   try {
     await Inventory.findByIdAndDelete(req.params.id);
@@ -94,7 +100,11 @@ app.delete("/api/inventory/:id", async (req, res) => {
   }
 });
 
-// ✅ Use 0.0.0.0 for Railway compatibility
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+// // Start the server
+// app.listen(PORT, () => {
+//   console.log(`🚀 Server running at http://localhost:${PORT}`);
+// });
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running at http://0.0.0.0:${PORT}`);
 });
